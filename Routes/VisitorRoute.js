@@ -26,6 +26,23 @@ router.post("/visitor_login", (req, res) => {
   });
 });
 
+router.get("/nb", (req, res) => {
+  const sql = "SELECT * FROM notablebatangaueños";
+  con.query(sql, (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
+router.get("/nb/:nbID", (req, res) => {
+  const nbID = req.params.nbID;
+  const sql = "SELECT * FROM notablebatangaueños WHERE nbID = ?";
+  con.query(sql, [nbID], (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
 router.get("/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ Status: true });
