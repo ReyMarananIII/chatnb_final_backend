@@ -4,6 +4,7 @@ import { adminRouter } from "./Routes/AdminRoute.js";
 import { visitorRouter } from "./Routes/VisitorRoute.js";
 import Jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
 
 const app = express();
 app.use(
@@ -40,6 +41,10 @@ app.get("/verify", verifyUser, (req, res) => {
   return res.json({ Status: true, role: req.role, id: req.id });
 });
 
-app.listen(3000, () => {
-  console.log("Server is running");
+dotenv.config();
+
+const port = process.env.port || 3000;
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });

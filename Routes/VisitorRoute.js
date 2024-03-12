@@ -1,8 +1,17 @@
 import express from "express";
 import con from "../utils/db.js";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import OpenAI from "openai";
 
 const router = express.Router();
+// var nbInfo;
+// var allMessages = [
+//   {
+//     role: "system",
+//     content: nbInfo,
+//   },
+// ];
 
 router.post("/visitor_login", (req, res) => {
   const sql = "SELECT * from visitor Where username = ? and password = ?";
@@ -46,6 +55,32 @@ router.get("/nb/:nbID", (req, res) => {
 router.get("/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ Status: true });
+});
+
+// OpenAI
+dotenv.config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+router.post("/chat_nb", async (req, res) => {
+  const { prompt } = req.body;
+  // allMessages.push(prompt);
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: prompt,
+      temperature: 1,
+      max_tokens: 100,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+    res.send(response.choices[0].message.content);
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
 export { router as visitorRouter };
