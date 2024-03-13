@@ -5,13 +5,6 @@ import dotenv from "dotenv";
 import OpenAI from "openai";
 
 const router = express.Router();
-// var nbInfo;
-// var allMessages = [
-//   {
-//     role: "system",
-//     content: nbInfo,
-//   },
-// ];
 
 router.post("/visitor_login", (req, res) => {
   const sql = "SELECT * from visitor Where username = ? and password = ?";
