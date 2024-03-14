@@ -18,13 +18,22 @@ router.post("/visitor_login", (req, res) => {
         { expiresIn: "1d" }
       );
       res.cookie("token", token);
-      return res.json({ loginStatus: true });
+      return res.json({ loginStatus: true, visitorID: result[0].visitorID });
     } else {
       return res.json({
         loginStatus: false,
         Error: "wrong username or password",
       });
     }
+  });
+});
+
+router.get("/detail/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const sql = "SELECT * FROM visitor WHERE visitorID = ?";
+  con.query(sql, [visitorID], (err, result) => {
+    if (err) return res.json({ Status: false });
+    return res.json({ Status: true, Result: result });
   });
 });
 
