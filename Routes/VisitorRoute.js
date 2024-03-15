@@ -68,10 +68,9 @@ const openai = new OpenAI({
 
 router.post("/chat_nb", async (req, res) => {
   const { prompt } = req.body;
-  // allMessages.push(prompt);
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-0125",
       messages: prompt,
       temperature: 1,
       max_tokens: 256,
