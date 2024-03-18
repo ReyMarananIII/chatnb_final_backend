@@ -71,15 +71,13 @@ const openai = new OpenAI({
 
 // Text-To-Speech
 const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-const voiceID = process.env.ELEVENLABS_VOICE_ID;
 
 const voice = new ElevenLabs({
   apiKey: elevenLabsApiKey, // Your API key from Elevenlabs
-  voiceId: voiceID, // A Voice ID from Elevenlabs
 });
 
 router.post("/chat_nb", async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, nb } = req.body;
   try {
     // Analyse message and get response
     const completion = await openai.chat.completions.create({
@@ -97,14 +95,13 @@ router.post("/chat_nb", async (req, res) => {
     const message = completion.choices[0].message.content;
     const textInput = message; // The text you wish to convert to speech
     await voice.textToSpeech({
-      voiceId: voiceID,
       fileName: fileName,
       textInput: textInput,
+      voiceId: nb.voiceID,
     });
 
     // generate lipsync
     await lipSyncMessage();
-
     const audio = await audioFileToBase64(fileName);
     const lipsync = await readJsonTranscript(
       `Public/Audios/message_audio.json`

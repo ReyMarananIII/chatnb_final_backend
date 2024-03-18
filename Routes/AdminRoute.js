@@ -28,26 +28,10 @@ router.post("/admin_login", (req, res) => {
   });
 });
 
-router.get("/voice", (req, res) => {
-  const sql = "SELECT * FROM voice";
-  con.query(sql, (err, result) => {
-    if (err) return res.json({ Status: false, Error: "Query Error" });
-    return res.json({ Status: true, Result: result });
-  });
-});
-
-router.post("/add_voice", (req, res) => {
-  const sql = "INSERT INTO voice (`name`) VALUES (?)";
-  con.query(sql, [req.body.voice], (err, result) => {
-    if (err) return res.json({ Status: false, Error: "Query Error" });
-    return res.json({ Status: true });
-  });
-});
-
 // image upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "Public/Images");
+    cb(null, "Public/Uploaded");
   },
   filename: (req, file, cb) => {
     cb(
@@ -56,20 +40,21 @@ const storage = multer.diskStorage({
     );
   },
 });
+
 const upload = multer({
   storage: storage,
 });
-// end imag eupload
 
-router.post("/add_nb", upload.single("image"), (req, res) => {
+router.post("/add_nb", upload.any(), (req, res) => {
   const sql = `INSERT INTO notablebatangaueños 
-    (name, information, voiceID, image) 
+    (name, information, voiceID, image, model) 
     VALUES (?)`;
   const values = [
     req.body.name,
     req.body.information,
     req.body.voiceID,
-    req.file.filename,
+    req.files[0].filename,
+    req.files[1].filename,
   ];
   con.query(sql, [values], (err, result) => {
     if (err) return res.json({ Status: false, Error: err });
