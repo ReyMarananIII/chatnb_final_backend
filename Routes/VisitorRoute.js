@@ -81,7 +81,7 @@ router.post("/chat_nb", async (req, res) => {
   try {
     // Analyse message and get response
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125",
+      model: "gpt-3.5-turbo",
       messages: prompt,
       temperature: 1,
       max_tokens: 256,
