@@ -71,7 +71,7 @@ const openai = new OpenAI({
 
 // Text-To-Speech
 const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-const voiceID = "gyeuMTz1KvJp8hqXmFe9";
+const voiceID = process.env.ELEVENLABS_VOICE_ID;
 
 const voice = new ElevenLabs({
   apiKey: elevenLabsApiKey, // Your API key from Elevenlabs
