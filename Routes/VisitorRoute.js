@@ -3,6 +3,9 @@ import con from "../utils/db.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import OpenAI from "openai";
+import ElevenLabs from "elevenlabs-node";
+import { exec } from "child_process";
+import { promises as fs } from "fs";
 
 const router = express.Router();
 
@@ -59,17 +62,27 @@ router.get("/logout", (req, res) => {
   return res.json({ Status: true });
 });
 
-// OpenAI
 dotenv.config();
 
+// Pre-Trained Model
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Text-To-Speech
+const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+const voiceID = "gyeuMTz1KvJp8hqXmFe9";
+
+const voice = new ElevenLabs({
+  apiKey: elevenLabsApiKey, // Your API key from Elevenlabs
+  voiceId: voiceID, // A Voice ID from Elevenlabs
 });
 
 router.post("/chat_nb", async (req, res) => {
   const { prompt } = req.body;
   try {
-    const response = await openai.chat.completions.create({
+    // Analyse message and get response
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo-0125",
       messages: prompt,
       temperature: 1,
@@ -78,10 +91,61 @@ router.post("/chat_nb", async (req, res) => {
       frequency_penalty: 0,
       presence_penalty: 0,
     });
-    res.send(response.choices[0].message.content);
+
+    // Transcribe the text response to audio
+    const fileName = "Public/Audios/message_audio.mp3";
+    const message = completion.choices[0].message.content;
+    const textInput = message; // The text you wish to convert to speech
+    await voice.textToSpeech({
+      voiceId: voiceID,
+      fileName: fileName,
+      textInput: textInput,
+    });
+
+    // generate lipsync
+    await lipSyncMessage();
+
+    const audio = await audioFileToBase64(fileName);
+    const lipsync = await readJsonTranscript(
+      `Public/Audios/message_audio.json`
+    );
+
+    const response = { message: message, audio: audio, lipsync: lipsync };
+    res.send(response);
   } catch (err) {
     res.status(500).send(err);
   }
 });
+
+// For NB speaking pattern
+const lipSyncMessage = async () => {
+  await execCommand(
+    "ffmpeg -y -i Public\\Audios\\message_audio.mp3 Public\\Audios\\message_audio.wav"
+    // -y to overwrite the file
+  );
+  await execCommand(
+    ".\\bin\\rhubarb.exe -f json -o Public\\Audios\\message_audio.json Public\\Audios\\message_audio.wav -r phonetic"
+  );
+  // -r phonetic is faster but less accurate
+};
+
+const execCommand = (command) => {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) reject(error);
+      resolve(stdout);
+    });
+  });
+};
+
+const readJsonTranscript = async (file) => {
+  const data = await fs.readFile(file, "utf8");
+  return JSON.parse(data);
+};
+
+const audioFileToBase64 = async (file) => {
+  const data = await fs.readFile(file);
+  return data.toString("base64");
+};
 
 export { router as visitorRouter };
