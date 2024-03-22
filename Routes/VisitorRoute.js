@@ -8,6 +8,7 @@ import { exec } from "child_process";
 import { promises as fs } from "fs";
 
 const router = express.Router();
+dotenv.config();
 
 router.post("/visitor_login", (req, res) => {
   const sql = "SELECT * from visitor Where username = ? and password = ?";
@@ -62,18 +63,14 @@ router.get("/logout", (req, res) => {
   return res.json({ Status: true });
 });
 
-dotenv.config();
-
 // Pre-Trained Model
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Text-To-Speech
-const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-
 const voice = new ElevenLabs({
-  apiKey: elevenLabsApiKey, // Your API key from Elevenlabs
+  apiKey: process.env.ELEVENLABS_API_KEY, // Your API key from Elevenlabs
 });
 
 router.post("/chat_nb", async (req, res) => {
@@ -92,12 +89,16 @@ router.post("/chat_nb", async (req, res) => {
 
     // Transcribe the text response to audio
     const fileName = "Public/Audios/message_audio.mp3";
-    const message = completion.choices[0].message.content;
-    const textInput = message; // The text you wish to convert to speech
+    const message = completion.choices[0].message.content; // The text to convert to speech
     await voice.textToSpeech({
-      fileName: fileName,
-      textInput: textInput,
-      voiceId: nb.voiceID,
+      fileName: fileName, // The name of your audio file
+      textInput: message, // The text you wish to convert to speech
+      voiceId: nb.voiceID, // A Voice ID from Elevenlabs
+      stability: 0.5, // The stability for the converted speech
+      similarityBoost: 0.5, // The similarity boost for the converted speech
+      modelId: "eleven_turbo_v2", // The ElevenLabs Model ID
+      style: 1, // The style exaggeration for the converted speech
+      speakerBoost: true, // The speaker boost for the converted speech
     });
 
     // generate lipsync
