@@ -146,4 +146,39 @@ const audioFileToBase64 = async (file) => {
   return data.toString("base64");
 };
 
+// To get the question with choices
+router.get("/questions", (req, res) => {
+  //Get question
+  const sqlAssessment = "SELECT * FROM assessment";
+  con.query(sqlAssessment, (err, questions) => {
+    if (err) throw err;
+
+    const results = [];
+    // Get choices
+    questions.forEach((question) => {
+      const sqlChoices =
+        "SELECT * FROM question_choices WHERE assessmentID = ?";
+      con.query(sqlChoices, [question.assessmentID], (err, choices) => {
+        if (err) throw err;
+        question.choices = choices;
+        results.push(question);
+        if (results.length === questions.length) {
+          res.json(results);
+        }
+      });
+    });
+  });
+});
+
+// Edit rewardpoints
+router.put("/edit_visitor/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const sql = `UPDATE visitor set rewardPoints = ? Where visitorID = ?`;
+  const values = [req.body.rewardPoints];
+  con.query(sql, [...values, visitorID], (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" + err });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
 export { router as visitorRouter };
