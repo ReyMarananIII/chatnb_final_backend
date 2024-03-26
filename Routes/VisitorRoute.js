@@ -146,29 +146,4 @@ const audioFileToBase64 = async (file) => {
   return data.toString("base64");
 };
 
-
-// Assessment routes
-
-router.get("/assessment/questions", (req, res) => {
-  const sql = "SELECT * FROM assessment";
-  con.query(sql, (err, result) => {
-    if (err) {
-      console.error("Error fetching quiz questions:", err);
-      return res.status(500).json({Status: false, error: "Error fetching quiz questions" });
-    }
-    return res.status(200).json({ Status: true, questions: result });
-  });
-});
-
-router.get("/assessment/choices", (req, res) => {
-  const sql = "SELECT * FROM question_choices";
-  con.query(sql, (err, result) => {
-    if (err) {
-      console.error("Error fetching quiz options:", err);
-      return res.status(500).json({Status: false, error: "Error fetching quiz options" });
-    }
-    return res.status(200).json({ Status: true, options: result });
-  });
-});
-
 export { router as visitorRouter };
