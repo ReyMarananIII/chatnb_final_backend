@@ -103,4 +103,124 @@ router.get("/logout", (req, res) => {
   return res.json({ Status: true });
 });
 
+// To get the question with choices
+router.get("/questions", (req, res) => {
+  //Get question
+  const sqlAssessment = "SELECT * FROM assessment";
+  con.query(sqlAssessment, (err, questions) => {
+    if (err) throw err;
+
+    const results = [];
+    // Get choices
+    questions.forEach((question) => {
+      const sqlChoices =
+        "SELECT * FROM question_choices WHERE assessmentID = ?";
+      con.query(sqlChoices, [question.assessmentID], (err, choices) => {
+        if (err) throw err;
+        question.choices = choices;
+        results.push(question);
+        if (results.length === questions.length) {
+          res.json(results);
+        }
+      });
+    });
+  });
+});
+
+// Get question by ID
+router.get("/questions/:assessmentID", (req, res) => {
+  const assessmentID = req.params.assessmentID;
+  con.query(
+    "SELECT * FROM assessment WHERE assessmentID = ?",
+    assessmentID,
+    (err, result) => {
+      if (err) throw err;
+      res.send(result[0]);
+    }
+  );
+});
+
+// Add a question
+router.post("/questions", (req, res) => {
+  const { question, choices } = req.body;
+
+  con.query(
+    "INSERT INTO assessment (question) VALUES (?)",
+    question,
+    (err, result) => {
+      if (err) throw err;
+
+      const assessmentID = result.insertId;
+
+      choices.forEach((choice) => {
+        con.query(
+          "INSERT INTO question_choices (assessmentID, choice, isCorrectChoice) VALUES (?, ?, ?)",
+          [assessmentID, choice.choice, choice.isCorrectChoice],
+          (err, result) => {
+            if (err) throw err;
+          }
+        );
+      });
+
+      res.json(assessmentID);
+    }
+  );
+});
+
+// Update a question
+router.put("/questions/:assessmentID", (req, res) => {
+  const assessmentID = req.params.assessmentID;
+  const { question, choices } = req.body;
+
+  con.query(
+    "UPDATE assessment SET question = ? WHERE assessmentID = ?",
+    [question, assessmentID],
+    (err, result) => {
+      if (err) throw err;
+
+      con.query(
+        "DELETE FROM question_choices WHERE assessmentID = ?",
+        assessmentID,
+        (err, result) => {
+          if (err) throw err;
+
+          choices.forEach((choice) => {
+            con.query(
+              "INSERT INTO question_choices (assessmentID, choice, isCorrectChoice) VALUES (?, ?, ?)",
+              [assessmentID, choice.choice, choice.isCorrectChoice],
+              (err, result) => {
+                if (err) throw err;
+              }
+            );
+          });
+
+          res.send("Question updated successfully");
+        }
+      );
+    }
+  );
+});
+
+// Delete a question
+router.delete("/questions/:assessmentID", (req, res) => {
+  const assessmentID = req.params.assessmentID;
+
+  con.query(
+    "DELETE FROM question_choices WHERE assessmentID = ?",
+    assessmentID,
+    (err, result) => {
+      if (err) throw err;
+
+      con.query(
+        "DELETE FROM assessment WHERE assessmentID = ?",
+        assessmentID,
+        (err, result) => {
+          if (err) throw err;
+          res.send("Question deleted successfully");
+        }
+      );
+    }
+  );
+});
+
 export { router as adminRouter };
