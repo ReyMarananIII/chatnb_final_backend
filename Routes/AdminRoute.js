@@ -47,14 +47,15 @@ const upload = multer({
 
 router.post("/add_nb", upload.any(), (req, res) => {
   const sql = `INSERT INTO notablebatangaueños 
-    (name, information, voiceID, image, model) 
+    (name, information, voiceID, image, model, bgImage) 
     VALUES (?)`;
   const values = [
     req.body.name,
     req.body.information,
     req.body.voiceID,
-    req.files[0].filename,
-    req.files[1].filename,
+    req.files[0].filename, // Image
+    req.files[1].filename, // Model
+    req.files[2].filename, // Bg Image
   ];
   con.query(sql, [values], (err, result) => {
     if (err) return res.json({ Status: false, Error: err });
@@ -62,10 +63,41 @@ router.post("/add_nb", upload.any(), (req, res) => {
   });
 });
 
-router.put("/edit_nb/:nbID", (req, res) => {
+router.put("/edit_nb/:nbID", upload.any(), (req, res) => {
   const nbID = req.params.nbID;
-  const sql = `UPDATE notablebatangaueños set name = ?, information = ?, voiceID = ? Where nbID = ?`;
-  const values = [req.body.name, req.body.information, req.body.voiceID];
+  const sql = `UPDATE notablebatangaueños set name = ?, information = ?, voiceID = ?, image = ?, model = ?, bgImage = ? Where nbID = ?`;
+
+  // To get the image file inside all the uploaded files
+  const getImage = (files) => {
+    const image = files.filter((file) => file.fieldname === "image");
+    return image.length !== 0 ? image[0].filename : req.body.image; // The old image if none of the file match
+  };
+
+  // To get the model file inside all the uploaded files
+  const getModel = (files) => {
+    const model = files.filter((file) => file.fieldname === "model");
+    return model.length !== 0 ? model[0].filename : req.body.model; // The old model if none of the file match
+  };
+
+  // To get the bgImage file inside all the uploaded files
+  const getBgImage = (files) => {
+    const bgImage = files.filter((file) => file.fieldname === "bgImage");
+    return bgImage.length !== 0 ? bgImage[0].filename : req.body.bgImage; // The old bgImage if none of the file match
+  };
+
+  // To store old files if the files was not changed
+  const image = getImage(req.files);
+  const model = getModel(req.files);
+  const bgImage = getBgImage(req.files);
+
+  const values = [
+    req.body.name,
+    req.body.information,
+    req.body.voiceID,
+    image,
+    model,
+    bgImage,
+  ];
   con.query(sql, [...values, nbID], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" + err });
     return res.json({ Status: true, Result: result });
