@@ -20,7 +20,7 @@ app.use("/admin", adminRouter);
 app.use("/visitor", visitorRouter);
 app.use(express.static("Public"));
 
-const verifyUser = (req, res, next) => {
+const getUser = (req, res, next) => {
   const token = req.cookies.token;
   if (token) {
     Jwt.verify(token, "jwt_secret_key", (err, decoded) => {
@@ -37,7 +37,7 @@ const verifyUser = (req, res, next) => {
     return res.json({ Status: false, Error: "Not autheticated" });
   }
 };
-app.get("/verify", verifyUser, (req, res) => {
+app.get("/getUser", getUser, (req, res) => {
   return res.json({ Status: true, role: req.role, id: req.id });
 });
 
