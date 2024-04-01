@@ -130,6 +130,23 @@ router.delete("/delete_nb/:nbID", (req, res) => {
   });
 });
 
+router.get("/feedback", (req, res) => {
+  const sql = "SELECT * FROM feedback";
+  con.query(sql, (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
+router.delete("/delete_feedback/:feedbackID", (req, res) => {
+  const feedbackID = req.params.feedbackID;
+  const sql = "delete from feedback where feedbackID = ?";
+  con.query(sql, [feedbackID], (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" + err });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
 router.get("/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ Status: true });

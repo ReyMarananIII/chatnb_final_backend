@@ -181,4 +181,18 @@ router.put("/edit_visitor/:visitorID", (req, res) => {
   });
 });
 
+// Add a feedback
+router.post("/feedback", (req, res) => {
+  const { visitorID, feedback } = req.body;
+
+  con.query(
+    "INSERT INTO feedback (visitorID, feedback) VALUES (?, ?)",
+    [visitorID, feedback],
+    (err, result) => {
+      if (err) return res.json({ Status: false, Error: "Query Error" + err });
+      return res.json({ Status: true, Result: result });
+    }
+  );
+});
+
 export { router as visitorRouter };
