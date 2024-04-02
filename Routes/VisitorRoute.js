@@ -37,7 +37,49 @@ router.get("/detail/:visitorID", (req, res) => {
   const sql = "SELECT * FROM visitor WHERE visitorID = ?";
   con.query(sql, [visitorID], (err, result) => {
     if (err) return res.json({ Status: false });
+    // Get rewardpoints
+    const sqlRewardPoint = "SELECT * FROM reward_points WHERE visitorID = ?";
+    con.query(sqlRewardPoint, [visitorID], (err, rewardPoint) => {
+      if (err) throw err;
+      result[0].rewardPoints = rewardPoint[0].totalPoints;
+      return res.json({ Status: true, Result: result });
+    });
+  });
+});
+
+// Edit rewardpoints
+router.put("/edit_visitor/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const sql = `UPDATE reward_points set totalPoints = ? Where visitorID = ?`;
+  const totalPoints = req.body.rewardPoints;
+  const values = [totalPoints];
+  con.query(sql, [...values, visitorID], (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" + err });
     return res.json({ Status: true, Result: result });
+  });
+});
+
+// Get rewardpoints
+router.get("/rewardPoints", (req, res) => {
+  const sql = "SELECT * FROM reward_points ORDER BY totalPoints DESC";
+  con.query(sql, (err, rewardPoints) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    const results = [];
+
+    // Get username
+    rewardPoints.forEach((rewardPoint) => {
+      const visitorID = rewardPoint.visitorID;
+      const sqlUsername = "SELECT * FROM visitor WHERE visitorID = ?";
+      con.query(sqlUsername, [visitorID], (err, visitor) => {
+        if (err) throw err;
+        rewardPoint.username = visitor[0].username;
+        results.push(rewardPoint);
+
+        if (results.length === rewardPoints.length) {
+          return res.json({ Status: true, Result: results });
+        }
+      });
+    });
   });
 });
 
@@ -167,17 +209,6 @@ router.get("/questions", (req, res) => {
         }
       });
     });
-  });
-});
-
-// Edit rewardpoints
-router.put("/edit_visitor/:visitorID", (req, res) => {
-  const visitorID = req.params.visitorID;
-  const sql = `UPDATE visitor set rewardPoints = ? Where visitorID = ?`;
-  const values = [req.body.rewardPoints];
-  con.query(sql, [...values, visitorID], (err, result) => {
-    if (err) return res.json({ Status: false, Error: "Query Error" + err });
-    return res.json({ Status: true, Result: result });
   });
 });
 

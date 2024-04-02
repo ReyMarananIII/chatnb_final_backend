@@ -152,6 +152,30 @@ router.get("/logout", (req, res) => {
   return res.json({ Status: true });
 });
 
+// Get rewardpoints
+router.get("/rewardPoints", (req, res) => {
+  const sql = "SELECT * FROM reward_points ORDER BY totalPoints DESC";
+  con.query(sql, (err, rewardPoints) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    const results = [];
+
+    // Get username
+    rewardPoints.forEach((rewardPoint) => {
+      const visitorID = rewardPoint.visitorID;
+      const sqlUsername = "SELECT * FROM visitor WHERE visitorID = ?";
+      con.query(sqlUsername, [visitorID], (err, visitor) => {
+        if (err) throw err;
+        rewardPoint.username = visitor[0].username;
+        results.push(rewardPoint);
+
+        if (results.length === rewardPoints.length) {
+          return res.json({ Status: true, Result: results });
+        }
+      });
+    });
+  });
+});
+
 // To get the question with choices
 router.get("/questions", (req, res) => {
   //Get question
