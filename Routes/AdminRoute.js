@@ -47,7 +47,7 @@ const upload = multer({
 
 router.post("/add_nb", upload.any(), (req, res) => {
   const sql = `INSERT INTO notablebatangaueños 
-    (name, information, voiceID, image, model, bgImage) 
+    (name, information, voiceID, image, model, bgImage, reference) 
     VALUES (?)`;
   const values = [
     req.body.name,
@@ -56,6 +56,7 @@ router.post("/add_nb", upload.any(), (req, res) => {
     req.files[0].filename, // Image
     req.files[1].filename, // Model
     req.files[2].filename, // Bg Image
+    req.body.reference,
   ];
   con.query(sql, [values], (err, result) => {
     if (err) return res.json({ Status: false, Error: err });
@@ -65,7 +66,7 @@ router.post("/add_nb", upload.any(), (req, res) => {
 
 router.put("/edit_nb/:nbID", upload.any(), (req, res) => {
   const nbID = req.params.nbID;
-  const sql = `UPDATE notablebatangaueños set name = ?, information = ?, voiceID = ?, image = ?, model = ?, bgImage = ? Where nbID = ?`;
+  const sql = `UPDATE notablebatangaueños set name = ?, information = ?, voiceID = ?, image = ?, model = ?, bgImage = ?, reference = ? Where nbID = ?`;
 
   // To get the image file inside all the uploaded files
   const getImage = (files) => {
@@ -97,6 +98,7 @@ router.put("/edit_nb/:nbID", upload.any(), (req, res) => {
     image,
     model,
     bgImage,
+    req.body.reference,
   ];
   con.query(sql, [...values, nbID], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" + err });
