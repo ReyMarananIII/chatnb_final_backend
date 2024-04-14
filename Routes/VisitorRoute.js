@@ -71,7 +71,7 @@ router.get("/rewardPoints", (req, res) => {
       const visitorID = rewardPoint.visitorID;
       const sqlUsername = "SELECT * FROM visitor WHERE visitorID = ?";
       con.query(sqlUsername, [visitorID], (err, visitor) => {
-        if (err) throw err;
+        if (err) return res.json({ Status: false, Error: "Query Error" });
         rewardPoint.username = visitor[0].username;
         results.push(rewardPoint);
 
