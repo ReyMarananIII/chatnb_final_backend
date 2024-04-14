@@ -26,7 +26,7 @@ router.post("/visitor_login", (req, res) => {
     } else {
       return res.json({
         loginStatus: false,
-        Error: "wrong username or password",
+        Error: "Wrong username or password",
       });
     }
   });
