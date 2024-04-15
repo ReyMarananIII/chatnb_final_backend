@@ -298,4 +298,32 @@ router.delete("/questions/:assessmentID", (req, res) => {
   );
 });
 
+router.get("/visitor-logins", (req, res) => {
+  con.query(
+    "SELECT DATE(loginTime) AS date, COUNT(DISTINCT visitorId) AS count FROM visitor_logins GROUP BY DATE(loginTime)",
+    (error, results) => {
+      if (error) {
+        console.error("Error executing query: " + error.stack);
+        res.status(500).send("Error fetching data");
+        return;
+      }
+      res.json(results);
+    }
+  );
+});
+
+router.get("/visitor-chats", (req, res) => {
+  con.query(
+    "SELECT DATE(chatTime) as date, COUNT(*) as count FROM visitor_chats GROUP BY DATE(chatTime)",
+    (error, results) => {
+      if (error) {
+        console.error("Error executing query: " + error.stack);
+        res.status(500).send("Error fetching data");
+        return;
+      }
+      res.json(results);
+    }
+  );
+});
+
 export { router as adminRouter };

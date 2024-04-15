@@ -15,14 +15,22 @@ router.post("/visitor_login", (req, res) => {
   con.query(sql, [req.body.username, req.body.password], (err, result) => {
     if (err) return res.json({ loginStatus: false, Error: "Query error" });
     if (result.length > 0) {
-      const username = result[0].username;
-      const token = jwt.sign(
-        { role: "visitor", username: username, visitorID: result[0].visitorID },
-        "jwt_secret_key",
-        { expiresIn: "1d" }
-      );
-      res.cookie("token", token);
-      return res.json({ loginStatus: true, visitorID: result[0].visitorID });
+      const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+      con.query(query, [result[0].visitorID], (err, results) => {
+        if (err) return res.json({ loginStatus: false, Error: "Query error" });
+        const username = result[0].username;
+        const token = jwt.sign(
+          {
+            role: "visitor",
+            username: username,
+            visitorID: result[0].visitorID,
+          },
+          "jwt_secret_key",
+          { expiresIn: "1d" }
+        );
+        res.cookie("token", token);
+        return res.json({ loginStatus: true, visitorID: result[0].visitorID });
+      });
     } else {
       return res.json({
         loginStatus: false,
@@ -116,7 +124,7 @@ const voice = new ElevenLabs({
 });
 
 router.post("/chat_nb", async (req, res) => {
-  const { prompt, nb } = req.body;
+  const { prompt, nb, visitorID, chat } = req.body;
   try {
     // Analyse message and get response
     const completion = await openai.chat.completions.create({
@@ -149,9 +157,14 @@ router.post("/chat_nb", async (req, res) => {
     const lipsync = await readJsonTranscript(
       `Public/Audios/message_audio.json`
     );
-
     const response = { message: message, audio: audio, lipsync: lipsync };
-    res.send(response);
+
+    const query =
+      "INSERT INTO visitor_chats (visitorID, chat, nb, response) VALUES (?, ?, ?, ?)";
+    con.query(query, [visitorID, chat, nb.name, message], (err, results) => {
+      if (err) return console.log("error");
+      res.send(response);
+    });
   } catch (err) {
     res.status(500).send(err);
   }
