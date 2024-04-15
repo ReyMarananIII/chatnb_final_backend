@@ -46,7 +46,7 @@ const upload = multer({
 });
 
 router.post("/add_nb", upload.any(), (req, res) => {
-  const sql = `INSERT INTO notablebatangaueños 
+  const sql = `INSERT INTO notablebatangueños 
     (name, information, voiceID, image, model, bgImage, reference) 
     VALUES (?)`;
   const values = [
@@ -66,7 +66,7 @@ router.post("/add_nb", upload.any(), (req, res) => {
 
 router.put("/edit_nb/:nbID", upload.any(), (req, res) => {
   const nbID = req.params.nbID;
-  const sql = `UPDATE notablebatangaueños set name = ?, information = ?, voiceID = ?, image = ?, model = ?, bgImage = ?, reference = ? Where nbID = ?`;
+  const sql = `UPDATE notablebatangueños set name = ?, information = ?, voiceID = ?, image = ?, model = ?, bgImage = ?, reference = ? Where nbID = ?`;
 
   // To get the image file inside all the uploaded files
   const getImage = (files) => {
@@ -107,7 +107,7 @@ router.put("/edit_nb/:nbID", upload.any(), (req, res) => {
 });
 
 router.get("/nb", (req, res) => {
-  const sql = "SELECT * FROM notablebatangaueños";
+  const sql = "SELECT * FROM notablebatangueños";
   con.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
@@ -116,7 +116,7 @@ router.get("/nb", (req, res) => {
 
 router.get("/nb/:nbID", (req, res) => {
   const nbID = req.params.nbID;
-  const sql = "SELECT * FROM notablebatangaueños WHERE nbID = ?";
+  const sql = "SELECT * FROM notablebatangueños WHERE nbID = ?";
   con.query(sql, [nbID], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
@@ -125,7 +125,7 @@ router.get("/nb/:nbID", (req, res) => {
 
 router.delete("/delete_nb/:nbID", (req, res) => {
   const nbID = req.params.nbID;
-  const sql = "delete from notablebatangaueños where nbID = ?";
+  const sql = "delete from notablebatangueños where nbID = ?";
   con.query(sql, [nbID], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" + err });
     return res.json({ Status: true, Result: result });

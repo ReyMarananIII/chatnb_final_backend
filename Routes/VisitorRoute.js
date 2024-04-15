@@ -84,7 +84,7 @@ router.get("/rewardPoints", (req, res) => {
 });
 
 router.get("/nb", (req, res) => {
-  const sql = "SELECT * FROM notablebatangaueños";
+  const sql = "SELECT * FROM notablebatangueños";
   con.query(sql, (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
@@ -93,7 +93,7 @@ router.get("/nb", (req, res) => {
 
 router.get("/nb/:nbID", (req, res) => {
   const nbID = req.params.nbID;
-  const sql = "SELECT * FROM notablebatangaueños WHERE nbID = ?";
+  const sql = "SELECT * FROM notablebatangueños WHERE nbID = ?";
   con.query(sql, [nbID], (err, result) => {
     if (err) return res.json({ Status: false, Error: "Query Error" });
     return res.json({ Status: true, Result: result });
