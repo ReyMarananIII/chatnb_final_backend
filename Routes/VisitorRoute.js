@@ -40,6 +40,23 @@ router.post("/visitor_login", (req, res) => {
   });
 });
 
+router.post("/set_instructed/", (req, res) => {
+  const { visitorID } = req.body;
+  const query = "INSERT INTO visitor_instructed (visitorID) VALUES (?)";
+  con.query(query, [visitorID], (err, results) => {
+    if (err) return res.json({ Status: false, Error: "Query error" });
+    return res.json({ Status: true, Result: results });
+  });
+});
+
+router.get("/get_instructed", (req, res) => {
+  const sql = "SELECT * FROM visitor_instructed";
+  con.query(sql, (err, result) => {
+    if (err) return res.json({ Status: false, Error: "Query Error" });
+    return res.json({ Status: true, Result: result });
+  });
+});
+
 router.get("/detail/:visitorID", (req, res) => {
   const visitorID = req.params.visitorID;
   const sql = "SELECT * FROM visitor WHERE visitorID = ?";
