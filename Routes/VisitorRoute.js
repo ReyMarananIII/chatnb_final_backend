@@ -130,12 +130,10 @@ router.get("/logout", (req, res) => {
   return res.json({ Status: true });
 });
 
+// Pre-Trained Model
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const MAX_RETRIES = 3; // Maximum number of retry attempts
-const RETRY_DELAY_MS = 1000; // Delay between retry attempts in milliseconds
 
 // Text-To-Speech
 const voice = new ElevenLabs({
@@ -145,18 +143,16 @@ const voice = new ElevenLabs({
 router.post("/chat_nb", async (req, res) => {
   const { prompt, nb, visitorID, chat } = req.body;
   try {
-    // Retry logic for OpenAI API call
-    const completion = await sendRequestWithRetry(() =>
-      openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: prompt,
-        temperature: 1,
-        max_tokens: 100,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-      })
-    );
+    // Analyse message and get response
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo-0125",
+      messages: prompt,
+      temperature: 1,
+      max_tokens: 100,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
 
     // Transcribe the text response to audio
     const fileName = "Public/Audios/message_audio.mp3";
@@ -195,22 +191,6 @@ router.post("/chat_nb", async (req, res) => {
     res.status(500).send(err);
   }
 });
-
-// Function to send request with retry logic
-async function sendRequestWithRetry(apiCall) {
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return await apiCall();
-    } catch (error) {
-      console.error(`Error on attempt ${attempt}:`, error);
-      if (attempt < MAX_RETRIES) {
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      } else {
-        throw new Error(`Failed after ${MAX_RETRIES} attempts`);
-      }
-    }
-  }
-}
 
 // For NB speaking pattern
 const lipSyncMessage = async () => {
