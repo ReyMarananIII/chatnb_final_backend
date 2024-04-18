@@ -145,7 +145,7 @@ router.post("/chat_nb", async (req, res) => {
   try {
     // Analyse message and get response
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125",
+      model: "gpt-3.5-turbo",
       messages: prompt,
       temperature: 1,
       max_tokens: 100,
@@ -158,20 +158,20 @@ router.post("/chat_nb", async (req, res) => {
     const fileName = "Public/Audios/message_audio.mp3";
     const message = completion.choices[0].message.content; // The text to convert to speech
 
-    //_______________________ELEVENLABS SWITCH_______________________________
+    //_____________________TURN OFF ELEVENLABS HERE___________________________
 
-    // await voice.textToSpeech({
-    //   fileName: fileName, // The name of your audio file
-    //   textInput: message, // The text you wish to convert to speech
-    //   voiceId: nb.voiceID, // A Voice ID from Elevenlabs
-    //   stability: 0.5, // The stability for the converted speech
-    //   similarityBoost: 0.5, // The similarity boost for the converted speech
-    //   modelId: "eleven_turbo_v2", // The ElevenLabs Model ID
-    //   style: 1, // The style exaggeration for the converted speech
-    //   speakerBoost: true, // The speaker boost for the converted speech
-    // });
+    await voice.textToSpeech({
+      fileName: fileName, // The name of your audio file
+      textInput: message, // The text you wish to convert to speech
+      voiceId: nb.voiceID, // A Voice ID from Elevenlabs
+      stability: 0.5, // The stability for the converted speech
+      similarityBoost: 0.5, // The similarity boost for the converted speech
+      modelId: "eleven_turbo_v2", // The ElevenLabs Model ID
+      style: 1, // The style exaggeration for the converted speech
+      speakerBoost: true, // The speaker boost for the converted speech
+    });
 
-    //________________________________________________________________________
+    //_____________________________ENDS HERE___________________________________
 
     // generate lipsync
     await lipSyncMessage();
