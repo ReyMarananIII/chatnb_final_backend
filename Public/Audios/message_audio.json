@@ -1,20 +1,20 @@
 {
   "metadata": {
     "soundFile": "C:\\Users\\Dev Gerald\\Desktop\\ChatNB\\chatnb_final_backend\\Public\\Audios\\message_audio.wav",
-    "duration": 1.25
+    "duration": 1.80
   },
   "mouthCues": [
-    { "start": 0.00, "end": 0.03, "value": "B" },
-    { "start": 0.03, "end": 0.05, "value": "A" },
-    { "start": 0.05, "end": 0.16, "value": "C" },
-    { "start": 0.16, "end": 0.23, "value": "B" },
-    { "start": 0.23, "end": 0.31, "value": "A" },
-    { "start": 0.31, "end": 0.40, "value": "C" },
-    { "start": 0.40, "end": 0.47, "value": "H" },
-    { "start": 0.47, "end": 0.66, "value": "C" },
-    { "start": 0.66, "end": 0.71, "value": "E" },
-    { "start": 0.71, "end": 1.03, "value": "F" },
-    { "start": 1.03, "end": 1.24, "value": "B" },
-    { "start": 1.24, "end": 1.25, "value": "X" }
+    { "start": 0.00, "end": 0.10, "value": "B" },
+    { "start": 0.10, "end": 0.17, "value": "G" },
+    { "start": 0.17, "end": 0.31, "value": "C" },
+    { "start": 0.31, "end": 0.45, "value": "B" },
+    { "start": 0.45, "end": 0.52, "value": "C" },
+    { "start": 0.52, "end": 0.66, "value": "B" },
+    { "start": 0.66, "end": 0.80, "value": "E" },
+    { "start": 0.80, "end": 1.01, "value": "F" },
+    { "start": 1.01, "end": 1.08, "value": "B" },
+    { "start": 1.08, "end": 1.22, "value": "C" },
+    { "start": 1.22, "end": 1.78, "value": "B" },
+    { "start": 1.78, "end": 1.80, "value": "X" }
   ]
 }
