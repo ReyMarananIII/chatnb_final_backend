@@ -138,6 +138,7 @@ const openai = new OpenAI({
 // Text-To-Speech
 const voice = new ElevenLabs({
   apiKey: process.env.ELEVENLABS_API_KEY, // Your API key from Elevenlabs
+  voiceId: process.env.DEFAULT_VOICE_ID, // A Voice ID from Elevenlabs
 });
 
 router.post("/chat_nb", async (req, res) => {
@@ -164,10 +165,10 @@ router.post("/chat_nb", async (req, res) => {
       fileName: fileName, // The name of your audio file
       textInput: message, // The text you wish to convert to speech
       voiceId: nb.voiceID, // A Voice ID from Elevenlabs
-      stability: 0, // The stability for the converted speech
-      similarityBoost: 0.5, // The similarity boost for the converted speech
+      stability: 0.5, // The stability for the converted speech
+      similarityBoost: 0.75, // The similarity boost for the converted speech
       modelId: "eleven_multilingual_v2", // The ElevenLabs Model ID
-      style: 1, // The style exaggeration for the converted speech
+      style: 0, // The style exaggeration for the converted speech
       speakerBoost: true, // The speaker boost for the converted speech
     });
 
