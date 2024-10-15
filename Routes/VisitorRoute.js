@@ -2,13 +2,70 @@ import express from "express";
 import con from "../utils/db.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import OpenAI from "openai";
-import ElevenLabs from "elevenlabs-node";
 import { exec } from "child_process";
 import { promises as fs } from "fs";
+import bcrypt from "bcrypt";
 
 const router = express.Router();
 dotenv.config();
+
+// Import bcrypt for password hashing
+ // Import bcrypt
+
+ router.post("/tokenlogin", (req, res) => {
+  const token = req.body.token;
+  console.log(token);
+
+  if (!token) {
+    return res.status(401).json({ loginStatus: false, Error: "No token provided" });
+  }
+
+  jwt.verify(token, "superSecretKey", (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ loginStatus: false, Error: "Invalid token" });
+    }
+
+    const visitorID = decoded.visitorID; // Extract visitorID from the token
+    const username = decoded.username; // Assuming username is in the token
+    const password = decoded.password; // Assuming password is in the token
+
+    // Check if the visitor already exists
+    const sql = "SELECT * FROM visitor WHERE username = ?";
+    con.query(sql, [username], (err, result) => {
+      if (err) return res.json({ loginStatus: false, Error: "Query error" });
+
+      if (result.length > 0) {
+        // Visitor exists, log them in
+        const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+        con.query(query, [visitorID], (err, results) => {
+          if (err) return res.json({ loginStatus: false, Error: "Query error" });
+
+          res.cookie("token", token); // Set token in cookie if needed
+          return res.json({ loginStatus: true, visitorID });
+        });
+      } else {
+        // Visitor does not exist, create a new record
+        // Use the hashed password from the token directly
+        const insertSql = "INSERT INTO visitor (username, `password`) VALUES (?, ?)";
+        con.query(insertSql, [username, password], (err, insertResult) => { // Use `password` directly
+          if (err) return res.json({ loginStatus: false, Error: "Query error" });
+
+          // Now log in the newly created visitor
+          const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+          const newVisitorID = insertResult.insertId; // Get the ID of the newly inserted visitor
+
+          con.query(query, [newVisitorID], (err, results) => {
+            if (err) return res.json({ loginStatus: false, Error: "Query error" });
+
+            res.cookie("token", token); // Set token in cookie if needed
+            return res.json({ loginStatus: true, visitorID: newVisitorID });
+          });
+        });
+      }
+    });
+  });
+});
+
 
 router.post("/visitor_login", (req, res) => {
   const sql = "SELECT * from visitor Where username = ? and password = ?";
@@ -129,100 +186,6 @@ router.get("/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ Status: true });
 });
-
-// Pre-Trained Model
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Text-To-Speech
-const voice = new ElevenLabs({
-  apiKey: process.env.ELEVENLABS_API_KEY, // Your API key from Elevenlabs
-  voiceId: process.env.DEFAULT_VOICE_ID, // A Voice ID from Elevenlabs
-});
-
-router.post("/chat_nb", async (req, res) => {
-  const { prompt, nb, visitorID, chat } = req.body;
-  try {
-    // Analyse message and get response
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125",
-      messages: prompt,
-      temperature: 1,
-      max_tokens: 100,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-    });
-
-    // Transcribe the text response to audio
-    const fileName = "Public/Audios/message_audio.mp3";
-    const message = completion.choices[0].message.content; // The text to convert to speech
-
-    //_____________________TURN OFF ELEVENLABS HERE___________________________
-
-    await voice.textToSpeech({
-      fileName: fileName, // The name of your audio file
-      textInput: message, // The text you wish to convert to speech
-      voiceId: nb.voiceID, // A Voice ID from Elevenlabs
-      stability: 0.5, // The stability for the converted speech
-      similarityBoost: 0.75, // The similarity boost for the converted speech
-      modelId: "eleven_multilingual_v2", // The ElevenLabs Model ID
-      style: 0, // The style exaggeration for the converted speech
-      speakerBoost: true, // The speaker boost for the converted speech
-    });
-
-    //_____________________________ENDS HERE___________________________________
-
-    // generate lipsync
-    await lipSyncMessage();
-    const audio = await audioFileToBase64(fileName);
-    const lipsync = await readJsonTranscript(
-      `Public/Audios/message_audio.json`
-    );
-    const response = { message: message, audio: audio, lipsync: lipsync };
-
-    const query =
-      "INSERT INTO visitor_chats (visitorID, chat, nb, response) VALUES (?, ?, ?, ?)";
-    con.query(query, [visitorID, chat, nb.name, message], (err, results) => {
-      if (err) return console.log("error");
-      res.send(response);
-    });
-  } catch (err) {
-    res.status(500).send(err);
-  }
-});
-
-// For NB speaking pattern
-const lipSyncMessage = async () => {
-  await execCommand(
-    "ffmpeg -y -i Public\\Audios\\message_audio.mp3 Public\\Audios\\message_audio.wav"
-    // -y to overwrite the file
-  );
-  await execCommand(
-    ".\\bin\\rhubarb.exe -f json -o Public\\Audios\\message_audio.json Public\\Audios\\message_audio.wav -r phonetic"
-  );
-  // -r phonetic is faster but less accurate
-};
-
-const execCommand = (command) => {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) reject(error);
-      resolve(stdout);
-    });
-  });
-};
-
-const readJsonTranscript = async (file) => {
-  const data = await fs.readFile(file, "utf8");
-  return JSON.parse(data);
-};
-
-const audioFileToBase64 = async (file) => {
-  const data = await fs.readFile(file);
-  return data.toString("base64");
-};
 
 // To get the question with choices
 router.get("/questions", (req, res) => {
