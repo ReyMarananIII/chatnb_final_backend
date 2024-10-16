@@ -12,6 +12,161 @@ dotenv.config();
 // Import bcrypt for password hashing
  // Import bcrypt
 
+ router.get("/users", (req, res) => {
+  const sql = "SELECT visitorID, username FROM visitor";
+  con.query(sql, (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    return res.json({ Status: true, Users: result });
+  });
+});
+
+
+
+
+// Get a user's information by visitorID
+router.get("/users/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const sql = "SELECT visitorID, username FROM visitor WHERE visitorID = ?";
+  con.query(sql, [visitorID], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.length === 0) return res.status(404).json({ Status: false, Error: "User not found" });
+    return res.json({ Status: true, User: result[0] });
+  });
+});
+
+// Update a user's information by visitorID (username or password)
+router.put("/users/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const { username, password } = req.body;
+
+  const sql = `UPDATE visitor SET username = ?, password = ? WHERE visitorID = ?`;
+  con.query(sql, [username, password, visitorID], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.affectedRows === 0) return res.status(404).json({ Status: false, Error: "User not found" });
+    return res.json({ Status: true, Message: "User updated successfully" });
+  });
+});
+
+// Delete a user by visitorID
+router.delete("/users/:visitorID", (req, res) => {
+  const visitorID = req.params.visitorID;
+  const sql = "DELETE FROM visitor WHERE visitorID = ?";
+  con.query(sql, [visitorID], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.affectedRows === 0) return res.status(404).json({ Status: false, Error: "User not found" });
+    return res.json({ Status: true, Message: "User deleted successfully" });
+  });
+});
+
+
+
+// Backend example for getting leaderboard (ordering by totalPoints descending)
+router.get("/reward_points/leaderboard", (req, res) => {
+  const sql = `
+    SELECT *
+    FROM reward_points 
+    JOIN visitor ON reward_points.visitorID = visitor.visitorID 
+    ORDER BY totalPoints DESC
+  `;
+  
+  con.query(sql, (err, result) => {
+    console.error('Database query error:', err);
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    return res.json(result);
+  });
+});
+
+
+
+
+// GET: Retrieve reward points for a specific visitor or all visitors
+router.get("/reward_points/:visitorID?", (req, res) => {
+  const visitorID = req.params.visitorID;
+
+  // If visitorID is provided, fetch points for that user, otherwise fetch all
+  const sql = visitorID
+    ? "SELECT * FROM reward_points WHERE visitorID = ?"
+    : "SELECT * FROM reward_points";
+
+  con.query(sql, visitorID ? [visitorID] : [], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.length === 0) return res.status(404).json({ Status: false, Error: "No reward points found" });
+    return res.json({ Status: true, RewardPoints: result });
+  });
+});
+
+// PUT: Update reward points for a specific rewardPointID
+router.put("/reward_points/:rewardPointID", (req, res) => {
+  const rewardPointID = req.params.rewardPointID;
+  const { totalPoints } = req.body;
+
+  if (!totalPoints) {
+    return res.status(400).json({ Status: false, Error: "Total points are required" });
+  }
+
+  const sql = "UPDATE reward_points SET totalPoints = ? WHERE rewardPointID = ?";
+  con.query(sql, [totalPoints, rewardPointID], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.affectedRows === 0) return res.status(404).json({ Status: false, Error: "Reward points not found" });
+    return res.json({ Status: true, Message: "Reward points updated successfully" });
+  });
+});
+
+// DELETE: Delete reward points by rewardPointID
+router.delete("/reward_points/:rewardPointID", (req, res) => {
+  const rewardPointID = req.params.rewardPointID;
+
+  const sql = "DELETE FROM reward_points WHERE rewardPointID = ?";
+  con.query(sql, [rewardPointID], (err, result) => {
+    if (err) return res.status(500).json({ Status: false, Error: "Query Error" });
+    if (result.affectedRows === 0) return res.status(404).json({ Status: false, Error: "Reward points not found" });
+    return res.json({ Status: true, Message: "Reward points deleted successfully" });
+  });
+});
+
+export { router as rewardPointsRouter };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  router.post("/tokenlogin", (req, res) => {
   const token = req.body.token;
   console.log(token);
