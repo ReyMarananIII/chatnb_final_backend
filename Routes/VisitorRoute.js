@@ -4,10 +4,170 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { exec } from "child_process";
 import { promises as fs } from "fs";
-import bcrypt from "bcrypt";
+import OpenAI from "openai";
+import ElevenLabs from "elevenlabs-node";
+import path from "path";
 
 const router = express.Router();
 dotenv.config();
+console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
+console.log("ELEVENLABS_API_KEY:", process.env.ELEVENLABS_API_KEY);
+console.log("DEFAULT_VOICE_ID:", process.env.DEFAULT_VOICE_ID);
+// Pre-Trained Model
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Text-To-Speech
+const voice = new ElevenLabs({
+  apiKey: process.env.ELEVENLABS_API_KEY, // Your API key from Elevenlabs
+  voiceId: process.env.DEFAULT_VOICE_ID, // A Voice ID from Elevenlabs
+});
+router.post("/chat_nb", async (req, res) => {
+  const { prompt, nb, visitorID, chat } = req.body;
+  
+  try {
+    // Analyse message and get response
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: prompt,
+      temperature: 1,
+      max_tokens: 100,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+
+    if (!completion || !completion.choices || completion.choices.length === 0) {
+      throw new Error('No valid response from OpenAI');
+    }
+
+    const message = completion.choices[0].message.content; // The text to convert to speech
+
+    //_____________________TURN OFF ELEVENLABS HERE___________________________
+    try {
+      await voice.textToSpeech({
+        fileName: "Public/Audios/message_audio.mp3", 
+        textInput: message, 
+        voiceId: nb.voiceID, 
+        stability: 0.5, 
+        similarityBoost: 0.75, 
+        modelId: "eleven_multilingual_v2", 
+        style: 0, 
+        speakerBoost: true, 
+      });
+    } catch (error) {
+      console.error("Error in text-to-speech conversion:", error);
+      throw new Error('Failed to convert text to speech');
+    }
+    //_____________________________ENDS HERE___________________________________
+
+    // Generate lipsync
+    try {
+      await lipSyncMessage();
+    } catch (error) {
+      console.error("Error in lipSyncMessage:", error);
+      throw new Error('Failed to generate lipsync');
+    }
+
+    const fileName = "Public/Audios/message_audio.mp3";
+    const audio = await audioFileToBase64(fileName);
+
+    // Read lipsync data from JSON
+    let lipsync;
+    try {
+      lipsync = await readJsonTranscript("Public/Audios/message_audio.json");
+    } catch (error) {
+      console.error("Error reading lipsync JSON:", error);
+      throw new Error('Failed to read lipsync JSON');
+    }
+
+    const response = { message: message, audio: audio, lipsync: lipsync };
+
+    // Insert into database
+    const query =
+      "INSERT INTO visitor_chats (visitorID, chat, nb, response) VALUES (?, ?, ?, ?)";
+    con.query(query, [visitorID, chat, nb.name, message], (err, results) => {
+      if (err) {
+        console.error("Database insert error:", err);
+        return res.status(500).send('Database error');
+      }
+      res.send(response);
+    });
+    
+  } catch (err) {
+    console.error("Error during processing:", err); // Log full error
+    res.status(500).send({
+      message: "An error occurred during processing",
+      error: err.message || err,
+    });
+  }
+});
+
+
+// For NB speaking pattern
+const lipSyncMessage = async () => {
+  await execCommand(
+    "ffmpeg -y -i Public\\Audios\\message_audio.mp3 Public\\Audios\\message_audio.wav"
+    // -y to overwrite the file
+  );
+  
+  // -r phonetic is faster but less accurate
+};
+
+const execCommand = (command) => {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) reject(error);
+      resolve(stdout);
+    });
+  });
+};
+
+const readJsonTranscript = async (file) => {
+  const data = await fs.readFile(file, "utf8");
+  return JSON.parse(data);
+};
+
+const audioFileToBase64 = async (file) => {
+  const data = await fs.readFile(file);
+  return data.toString("base64");
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Import bcrypt for password hashing
  // Import bcrypt
@@ -180,40 +340,45 @@ export { router as rewardPointsRouter };
       return res.status(401).json({ loginStatus: false, Error: "Invalid token" });
     }
 
-    const visitorID = decoded.visitorID; // Extract visitorID from the token
+  
     const username = decoded.username; // Assuming username is in the token
     const password = decoded.password; // Assuming password is in the token
 
     // Check if the visitor already exists
     const sql = "SELECT * FROM visitor WHERE username = ?";
+
+    
     con.query(sql, [username], (err, result) => {
-      if (err) return res.json({ loginStatus: false, Error: "Query error" });
+      if (err) return res.json({ loginStatus: false, Error: "Query error1" });
 
       if (result.length > 0) {
+        const visitorID = result[0].visitorID; // Access the visitorId field
         // Visitor exists, log them in
+        console.log(visitorID);
         const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+        
         con.query(query, [visitorID], (err, results) => {
-          if (err) return res.json({ loginStatus: false, Error: "Query error" });
+          if (err) return res.json({ loginStatus: false, Error: "Query error2" });
 
           res.cookie("token", token); // Set token in cookie if needed
-          return res.json({ loginStatus: true, visitorID });
+          return res.json({ status: 200, loginStatus: true, visitorID });
         });
       } else {
         // Visitor does not exist, create a new record
         // Use the hashed password from the token directly
-        const insertSql = "INSERT INTO visitor (username, `password`) VALUES (?, ?)";
+        const insertSql = "INSERT INTO visitor (username, `password`,`role`) VALUES (?, ?,'user')";
         con.query(insertSql, [username, password], (err, insertResult) => { // Use `password` directly
-          if (err) return res.json({ loginStatus: false, Error: "Query error" });
+          if (err) return res.json({ loginStatus: false, Error: "Query error3" });
 
           // Now log in the newly created visitor
           const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
           const newVisitorID = insertResult.insertId; // Get the ID of the newly inserted visitor
 
           con.query(query, [newVisitorID], (err, results) => {
-            if (err) return res.json({ loginStatus: false, Error: "Query error" });
+            if (err) return res.json({ loginStatus: false, Error: "Query error4" });
 
             res.cookie("token", token); // Set token in cookie if needed
-            return res.json({ loginStatus: true, visitorID: newVisitorID });
+            return res.json({ status: 200,loginStatus: true, visitorID: newVisitorID });
           });
         });
       }
