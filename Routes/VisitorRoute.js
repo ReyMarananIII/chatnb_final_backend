@@ -341,10 +341,10 @@ export { router as rewardPointsRouter };
     }
 
   
-    const username = decoded.username; // Assuming username is in the token
-    const password = decoded.password; // Assuming password is in the token
+    const username = decoded.username; 
+    const password = decoded.password; 
 
-    // Check if the visitor already exists
+    
     const sql = "SELECT * FROM visitor WHERE username = ?";
 
     
@@ -352,33 +352,48 @@ export { router as rewardPointsRouter };
       if (err) return res.json({ loginStatus: false, Error: "Query error1" });
 
       if (result.length > 0) {
-        const visitorID = result[0].visitorID; // Access the visitorId field
-        // Visitor exists, log them in
+        const visitorID = result[0].visitorID; 
         console.log(visitorID);
         const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
         
         con.query(query, [visitorID], (err, results) => {
           if (err) return res.json({ loginStatus: false, Error: "Query error2" });
 
-          res.cookie("token", token); // Set token in cookie if needed
+          res.cookie("token", token); 
           return res.json({ status: 200, loginStatus: true, visitorID });
         });
       } else {
-        // Visitor does not exist, create a new record
-        // Use the hashed password from the token directly
+        const insertRewardPointsSql = "INSERT INTO reward_points (visitorID) VALUES (?)";
         const insertSql = "INSERT INTO visitor (username, `password`,`role`) VALUES (?, ?,'user')";
-        con.query(insertSql, [username, password], (err, insertResult) => { // Use `password` directly
+        con.query(insertSql, [username, password], (err, insertResult) => { 
           if (err) return res.json({ loginStatus: false, Error: "Query error3" });
 
-          // Now log in the newly created visitor
-          const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
-          const newVisitorID = insertResult.insertId; // Get the ID of the newly inserted visitor
+  const newVisitorID = insertResult.insertId; // Get the ID of the newly inserted visitor
 
-          con.query(query, [newVisitorID], (err, results) => {
-            if (err) return res.json({ loginStatus: false, Error: "Query error4" });
+  // Insert the new visitor's reward points
+  con.query(insertRewardPointsSql, [newVisitorID], (err, rewardPointsResult) => {
+    if (err) return res.json({ loginStatus: false, Error: "Query error inserting reward points" });
 
-            res.cookie("token", token); // Set token in cookie if needed
-            return res.json({ status: 200,loginStatus: true, visitorID: newVisitorID });
+    // Now log in the newly created visitor
+    const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+
+    con.query(query, [newVisitorID], (err, loginResult) => {
+      if (err) return res.json({ loginStatus: false, Error: "Query error4" });
+
+      const token = jwt.sign(
+        {
+          role: "visitor",
+          username: username,
+          visitorID: newVisitorID, 
+        },
+        "jwt_secret_key", 
+        { expiresIn: "1d" } 
+      );
+
+      res.cookie("tokentoken", token); 
+      return res.json({ status: 200, loginStatus: true, visitorID: newVisitorID });
+    });
+
           });
         });
       }
