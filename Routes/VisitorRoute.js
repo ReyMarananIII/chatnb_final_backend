@@ -7,6 +7,7 @@ import { promises as fs } from "fs";
 import OpenAI from "openai";
 import ElevenLabs from "elevenlabs-node";
 import path from "path";
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
 dotenv.config();
@@ -325,9 +326,7 @@ export { router as rewardPointsRouter };
 
 
 
-
-
- router.post("/tokenlogin", (req, res) => {
+router.post("/tokenlogin", (req, res) => {
   const token = req.body.token;
   console.log(token);
 
@@ -340,88 +339,115 @@ export { router as rewardPointsRouter };
       return res.status(401).json({ loginStatus: false, Error: "Invalid token" });
     }
 
-  
     const username = decoded.username; 
-    const password = decoded.password; 
+    const password = decoded.password;
+    console.log(password)
 
-    
-    const sql = "SELECT * FROM visitor WHERE username = ?";
-
-    
-    con.query(sql, [username], (err, result) => {
-      if (err) return res.json({ loginStatus: false, Error: "Query error1" });
-
-      if (result.length > 0) {
-        const visitorID = result[0].visitorID; 
-        console.log(visitorID);
-        const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
-        
-        con.query(query, [visitorID], (err, results) => {
-          if (err) return res.json({ loginStatus: false, Error: "Query error2" });
-
-          res.cookie("token", token); 
-          return res.json({ status: 200, loginStatus: true, visitorID });
-        });
-      } else {
-        const insertRewardPointsSql = "INSERT INTO reward_points (visitorID) VALUES (?)";
-        const insertSql = "INSERT INTO visitor (username, `password`,`role`) VALUES (?, ?,'user')";
-        con.query(insertSql, [username, password], (err, insertResult) => { 
-          if (err) return res.json({ loginStatus: false, Error: "Query error3" });
-
-  const newVisitorID = insertResult.insertId; // Get the ID of the newly inserted visitor
-
-  // Insert the new visitor's reward points
-  con.query(insertRewardPointsSql, [newVisitorID], (err, rewardPointsResult) => {
-    if (err) return res.json({ loginStatus: false, Error: "Query error inserting reward points" });
-
-    // Now log in the newly created visitor
-    const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
-
-    con.query(query, [newVisitorID], (err, loginResult) => {
-      if (err) return res.json({ loginStatus: false, Error: "Query error4" });
-
-      const token = jwt.sign(
-        {
-          role: "visitor",
-          username: username,
-          visitorID: newVisitorID, 
-        },
-        "jwt_secret_key", 
-        { expiresIn: "1d" } 
-      );
-
-      res.cookie("tokentoken", token); 
-      return res.json({ status: 200, loginStatus: true, visitorID: newVisitorID });
-    });
-
-          });
-        });
+    bcrypt.hash(password, 10, (err, hashedPassword) => {
+      if (err) {
+        console.error('Error hashing password:', err);
+        return res.status(500).json({ loginStatus: false, Error: "Error hashing password" });
       }
+      console.log('Hashed password:', hashedPassword);
+
+      const sql = "SELECT * FROM visitor WHERE username = ?";
+
+      con.query(sql, [username], (err, result) => {
+        if (err) return res.json({ loginStatus: false, Error: "Query error1" });
+
+        if (result.length > 0) {
+          // Visitor already exists, proceed to log them in
+          const visitorID = result[0].visitorID; 
+          console.log(visitorID);
+          const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+          
+          con.query(query, [visitorID], (err, results) => {
+            if (err) return res.json({ loginStatus: false, Error: "Query error2" });
+
+            res.cookie("token", token); 
+            return res.json({ status: 200, loginStatus: true, visitorID });
+          });
+        } else {
+          // New visitor, insert the new user and hashed password
+          const insertRewardPointsSql = "INSERT INTO reward_points (visitorID) VALUES (?)";
+          const insertSql = "INSERT INTO visitor (username, `password`, `role`) VALUES (?, ?, 'user')";
+          
+          // Insert new visitor with hashed password
+          con.query(insertSql, [username, hashedPassword], (err, insertResult) => { 
+            if (err) return res.json({ loginStatus: false, Error: "Query error3" });
+
+            const newVisitorID = insertResult.insertId; 
+
+            // Insert the new visitor's reward points
+            con.query(insertRewardPointsSql, [newVisitorID], (err, rewardPointsResult) => {
+              if (err) return res.json({ loginStatus: false, Error: "Query error inserting reward points" });
+
+              // Now log in the newly created visitor
+              const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+
+              con.query(query, [newVisitorID], (err, loginResult) => {
+                if (err) return res.json({ loginStatus: false, Error: "Query error4" });
+
+                const newToken = jwt.sign(
+                  {
+                    role: "visitor",
+                    username: username,
+                    visitorID: newVisitorID, 
+                  },
+                  "jwt_secret_key", 
+                  { expiresIn: "1d" } 
+                );
+
+                res.cookie("tokentoken", newToken); 
+                return res.json({ status: 200, loginStatus: true, visitorID: newVisitorID });
+              });
+            });
+          });
+        }
+      });
     });
   });
 });
 
 
+
 router.post("/visitor_login", (req, res) => {
-  const sql = "SELECT * from visitor Where username = ? and password = ?";
-  con.query(sql, [req.body.username, req.body.password], (err, result) => {
+  const sql = "SELECT * from visitor WHERE username = ?";
+  
+  // Find user by username
+  con.query(sql, [req.body.username], (err, result) => {
     if (err) return res.json({ loginStatus: false, Error: "Query error" });
+    
     if (result.length > 0) {
-      const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
-      con.query(query, [result[0].visitorID], (err, results) => {
-        if (err) return res.json({ loginStatus: false, Error: "Query error" });
-        const username = result[0].username;
-        const token = jwt.sign(
-          {
-            role: "visitor",
-            username: username,
-            visitorID: result[0].visitorID,
-          },
-          "jwt_secret_key",
-          { expiresIn: "1d" }
-        );
-        res.cookie("token", token);
-        return res.json({ loginStatus: true, visitorID: result[0].visitorID });
+      // Compare provided password with stored hashed password
+      bcrypt.compare(req.body.password, result[0].password, (err, isMatch) => {
+        if (err) return res.json({ loginStatus: false, Error: "Error comparing passwords" });
+
+        if (isMatch) {
+          // Password matched, proceed with login
+          const query = "INSERT INTO visitor_logins (visitorID) VALUES (?)";
+          con.query(query, [result[0].visitorID], (err, results) => {
+            if (err) return res.json({ loginStatus: false, Error: "Query error" });
+            
+            const username = result[0].username;
+            const token = jwt.sign(
+              {
+                role: "visitor",
+                username: username,
+                visitorID: result[0].visitorID,
+              },
+              "jwt_secret_key",
+              { expiresIn: "1d" }
+            );
+            res.cookie("token", token);
+            return res.json({ loginStatus: true, visitorID: result[0].visitorID });
+          });
+        } else {
+          return res.json({
+            loginStatus: false,
+            Error: "Wrong username or password",
+          });
+        }
       });
     } else {
       return res.json({
